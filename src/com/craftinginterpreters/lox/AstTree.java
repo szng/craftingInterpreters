@@ -13,38 +13,19 @@ public class AstTree implements Expr.Visitor<String> {
 
     @Override
     public String visitGroupingExpr(Expr.Grouping expr) {
-        return expr.expression.accept(this);
+        return tree("group", expr.expression);
     }
 
     @Override
 //  递归出口
     public String visitLiteralExpr(Expr.Literal expr) {
-        StringBuilder builder = new StringBuilder();
-
-        for (int i = 0; i < layer - 1; i++) {
-            if (isLeftandBinary[i]) {
-                builder.append("│   ");
-            } else {
-                builder.append("    ");
-            }
-        }
-
-        if (layer != 0) {
-            if (isLeftandBinary[layer - 1]) {
-                builder.append("├── ");
-            } else {
-                builder.append("└── ");
-            }
-        }
-
-        String value;
+        String name;
         if (expr.value == null) {
-            value = "nil";
+            name = "nil";
         } else {
-            value = expr.value.toString();
+            name = expr.value.toString();
         }
-        builder.append(value).append("\n");
-        return builder.toString();
+        return tree(name, null);
     }
 
     @Override
@@ -52,40 +33,51 @@ public class AstTree implements Expr.Visitor<String> {
         return tree(expr.operator.lexeme, expr.right);
     }
 
+    @Override
+    public String visitTernaryExpr(Expr.Ternary expr) {
+        return tree("?", expr.condition, expr.left, expr.right);
+    }
+
     private String tree(String name, Expr... exprs) {
         StringBuilder builder = new StringBuilder();
 
         for (int i = 0; i < layer - 1; i++) {
-            if (isLeftandBinary[i]) {
-                builder.append("│    ");
-            } else {
+            if (isLast[i]) {
                 builder.append("    ");
+            } else {
+                builder.append("│   ");
             }
         }
 
         if (layer != 0) {
-            if (isLeftandBinary[layer - 1]) {
-                builder.append("├── ");
-            } else {
+            if (isLast[layer - 1]) {
                 builder.append("└── ");
+            } else {
+                builder.append("├── ");
             }
         }
 
         builder.append(name).append("\n");
 
-        // 单字符当作右子树
-        isLeftandBinary[layer] = exprs.length != 1;
-        for (Expr expr : exprs) {
-            layer++;
-            builder.append(expr.accept(this));
-            layer--;
-            isLeftandBinary[layer] = false;
+        if (exprs != null) {
+            // 单字符当作右子树
+            for (int i = 0; i < exprs.length; i++) {
+                if (i == exprs.length - 1) {
+                    isLast[layer] = true;
+                }
+                layer++;
+
+                builder.append(exprs[i].accept(this));
+
+                layer--;
+                isLast[layer] = false;
+            }
         }
         return builder.toString();
     }
 
     private int layer = 0;
-    private final boolean[] isLeftandBinary = new boolean[100];
+    private final boolean[] isLast = new boolean[100];
 
     public static void main(String[] args) {
         Expr expression = new Expr.Binary(

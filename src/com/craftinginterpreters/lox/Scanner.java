@@ -85,6 +85,12 @@ class Scanner {
             case '*':
                 addToken(STAR);
                 break;
+            case ':':
+                addToken(COLON);
+                break;
+            case '?':
+                addToken(QUESTION);
+                break;
             // 单字符或双字符词素
             case '!':
                 addToken(match('=') ? BANG_EQUAL : BANG);
@@ -101,6 +107,8 @@ class Scanner {
             case '/':
                 if (match('/')) {
                     while (peek() != '\n' && !isAtEnd()) advance();
+                } else if (match('*')) {
+                    comment();
                 } else {
                     addToken(SLASH);
                 }
@@ -155,6 +163,31 @@ class Scanner {
             return '\0';
         } else {
             return source.charAt(current + 1);
+        }
+    }
+
+//    /*。。。*/注释符
+    private void comment() {
+        int index = current;
+//        处理行号
+        int countLine = line;
+        boolean hasEnd = false;
+        while (index < source.length() - 1) {
+            if (source.charAt(index) == '\n') {
+                countLine++;
+            }
+            if (source.charAt(index) == '*'
+                    && source.charAt(index + 1) == '/') {
+                current = index + 2;
+                line = countLine;
+                hasEnd = true;
+            }
+
+            index++;
+        }
+        if (!hasEnd) {
+            current = source.length();
+            line = countLine;
         }
     }
 

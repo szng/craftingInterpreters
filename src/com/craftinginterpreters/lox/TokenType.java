@@ -4,6 +4,7 @@ enum TokenType {
     // 单字符标识
     LEFT_PAREN, RIGHT_PAREN, LET_BRACE, RIGHT_BRACE,
     COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
+    COLON, QUESTION,
 
     // 单字符或双字符标识
     BANG, BANG_EQUAL,

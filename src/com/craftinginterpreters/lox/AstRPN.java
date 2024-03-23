@@ -13,7 +13,7 @@ public class AstRPN implements Expr.Visitor<String> {
 
     @Override
     public String visitGroupingExpr(Expr.Grouping expr) {
-        return expr.expression.accept(this);
+        return parenthesize("group", expr.expression);
     }
 
     @Override
@@ -26,6 +26,11 @@ public class AstRPN implements Expr.Visitor<String> {
     public String visitUnaryExpr(Expr.Unary expr) {
         return parenthesize(expr.operator.lexeme,
                 expr.right);
+    }
+
+    @Override
+    public String visitTernaryExpr(Expr.Ternary expr) {
+        return parenthesize("?", expr.condition, expr.left, expr.right);
     }
 
     private String parenthesize(String name, Expr... exprs) {
