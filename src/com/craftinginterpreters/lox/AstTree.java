@@ -1,9 +1,25 @@
 package com.craftinginterpreters.lox;
 
+import java.util.List;
+
 // 仿照Linux tree命令在控制台画层次图
-public class AstTree implements Expr.Visitor<String> {
-    String print(Expr expr) {
-        return expr.accept(this);
+public class AstTree implements Expr.Visitor<String>,
+                                Stmt.Visitor<String>{
+    String print(List<Stmt> statements) {
+        StringBuilder builder = new StringBuilder();
+        for (Stmt statement : statements) {
+            builder.append(draw(statement)).append("\n");
+        }
+
+        return builder.toString();
+    }
+
+    private String draw(Stmt statement) {
+        return statement.accept(this);
+    }
+
+    private String draw(Expr expression) {
+        return expression.accept(this);
     }
 
     @Override
@@ -34,10 +50,19 @@ public class AstTree implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitAssignExpr(Expr.Assign expr) {
+        return tree(expr.name.lexeme + "=", expr.value);
+    }
+
+    @Override
     public String visitTernaryExpr(Expr.Ternary expr) {
         return tree("?", expr.condition, expr.left, expr.right);
     }
 
+    @Override
+    public String visitVariableExpr(Expr.Variable expr) {
+        return tree("ID: "+ expr.name.lexeme, null);
+    }
     private String tree(String name, Expr... exprs) {
         StringBuilder builder = new StringBuilder();
 
@@ -79,6 +104,43 @@ public class AstTree implements Expr.Visitor<String> {
     private int layer = 0;
     private final boolean[] isLast = new boolean[100];
 
+    @Override
+    public String visitBlockStmt(Stmt.Block stmt) {
+
+        return "{\n" +
+                print(stmt.statements) +
+                "}\n";
+    }
+
+    @Override
+    public String visitExpressionStmt(Stmt.Expression stmt) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(";").append("\n");
+
+        isLast[layer++] = true;
+        builder.append(draw(stmt.expression));
+        isLast[--layer] = false;
+
+        return builder.toString();
+    }
+
+    @Override
+    public String visitPrintStmt(Stmt.Print stmt) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("print").append("\n");
+
+        isLast[layer++] = true;
+        builder.append(draw(stmt.expression));
+        isLast[--layer] = false;
+
+        return builder.toString();
+    }
+
+    @Override
+    public String visitVarStmt(Stmt.Var stmt) {
+        return null;
+    }
+
     public static void main(String[] args) {
         Expr expression = new Expr.Binary(
                 new Expr.Unary(
@@ -93,7 +155,7 @@ public class AstTree implements Expr.Visitor<String> {
         Expr expression2 = new Expr.Binary(
                 new Expr.Grouping(
                         new Expr.Binary(
-                                new Expr.Literal(1),
+                                new Expr.Variable(new Token(TokenType.IDENTIFIER, "a", null, 1)),
                                 new Token(TokenType.PLUS, "+", null, 1),
                                 new Expr.Literal(2))),
                 new Token(TokenType.STAR, "*", null, 1),
@@ -102,7 +164,7 @@ public class AstTree implements Expr.Visitor<String> {
                                 new Token(TokenType.MINUS, "-", null, 1),
                                 new Expr.Literal(3))));
 
-        System.out.println(new AstTree().print(expression));
-        System.out.println(new AstTree().print(expression2));
+        System.out.println(new AstTree().draw(expression));
+        System.out.println(new AstTree().draw(expression2));
     }
 }

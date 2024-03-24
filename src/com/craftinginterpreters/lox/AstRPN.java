@@ -29,8 +29,18 @@ public class AstRPN implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitAssignExpr(Expr.Assign expr) {
+        return null;
+    }
+
+    @Override
     public String visitTernaryExpr(Expr.Ternary expr) {
         return parenthesize("?", expr.condition, expr.left, expr.right);
+    }
+
+    @Override
+    public String visitVariableExpr(Expr.Variable expr) {
+        return "(ID:" + expr.name.lexeme + ")";
     }
 
     private String parenthesize(String name, Expr... exprs) {
@@ -49,7 +59,7 @@ public class AstRPN implements Expr.Visitor<String> {
         Expr expression = new Expr.Binary(
                 new Expr.Grouping(
                             new Expr.Binary(
-                                new Expr.Literal(1),
+                                new Expr.Variable(new Token(TokenType.IDENTIFIER, "a", null, 1)),
                                 new Token(TokenType.PLUS, "+", null, 1),
                                 new Expr.Literal(2))),
                 new Token(TokenType.STAR, "*", null, 1),
