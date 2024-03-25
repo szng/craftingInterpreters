@@ -45,6 +45,11 @@ public class AstTree implements Expr.Visitor<String>,
     }
 
     @Override
+    public String visitLogicalExpr(Expr.Logical expr) {
+        return tree(expr.operator.lexeme, expr.left, expr.right);
+    }
+
+    @Override
     public String visitUnaryExpr(Expr.Unary expr) {
         return tree(expr.operator.lexeme, expr.right);
     }
@@ -125,6 +130,22 @@ public class AstTree implements Expr.Visitor<String>,
     }
 
     @Override
+    public String visitIfStmt(Stmt.If stmt) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("if").append("\n");
+        // todo 在语句层面抽象tree命令
+        layer++;
+        builder.append(draw(stmt.condition));
+        builder.append(draw(stmt.thenBranch));
+        layer--;
+        isLast[layer++] = true;
+        builder.append(draw(stmt.elseBranch));
+        isLast[--layer] = false;
+
+        return builder.toString();
+    }
+
+    @Override
     public String visitPrintStmt(Stmt.Print stmt) {
         StringBuilder builder = new StringBuilder();
         builder.append("print").append("\n");
@@ -138,6 +159,12 @@ public class AstTree implements Expr.Visitor<String>,
 
     @Override
     public String visitVarStmt(Stmt.Var stmt) {
+        return null;
+    }
+
+    @Override
+    public String visitWhileStmt(Stmt.While stmt) {
+//        todo
         return null;
     }
 

@@ -1,10 +1,14 @@
 package com.craftinginterpreters.lox;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.craftinginterpreters.lox.TokenType.*;
 
+/**
+ * 层次结构，语句抽象在表达式之上
+ */
 class Parser {
     private static class ParseError extends RuntimeException {}
     private final List<Token> tokens;
@@ -23,6 +27,7 @@ class Parser {
         return statements;
     }
 
+    // 语句
     private Stmt declaration() {
         try {
             if (match(VAR)) {
@@ -36,6 +41,7 @@ class Parser {
     }
 
     private Stmt varDeclaration() {
+        // todo 结合逗号表达式一次对多个变量声明
         Token name = consume(IDENTIFIER, "Expect variable name.");
 
         Expr initializer = null;
@@ -48,14 +54,93 @@ class Parser {
     }
 
     private Stmt statement() {
+        if (match(FOR)) {
+            return forStatement();
+        }
+        if (match(IF)) {
+            return ifStatement();
+        }
         if (match(PRINT)) {
             return printStatement();
+        }
+        if (match(WHILE)) {
+            return whileStatement();
         }
 
         if (match(LEFT_BRACE)) {
             return new Stmt.Block(block());
         }
+
         return expressionStatement();
+    }
+
+    private Stmt forStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+
+        Stmt initializer;
+        if (match(SEMICOLON)) {
+            initializer = null;
+        } else if (match(VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+
+        Expr condition = null;
+        if (!check(SEMICOLON)) {
+            condition = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        Expr increment = null;
+        if (!check(RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(RIGHT_PAREN, "Expect ')' after fo clauses.");
+
+        Stmt body = statement();
+
+        // 脱糖，处理成while结构
+        if (increment != null) {
+            body = new Stmt.Block(
+                    Arrays.asList(
+                            body,
+                            new Stmt.Expression(increment)));
+        }
+
+        if (condition == null) {
+            condition = new Expr.Literal(true);
+        }
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
+    }
+
+    private Stmt whileStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'while'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = statement();
+
+        return new Stmt.While(condition, body);
+    }
+
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after if condition.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        if (match(ELSE)) {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt expressionStatement() {
@@ -81,13 +166,27 @@ class Parser {
         return new Stmt.Print(value);
     }
 
+    // 表达式
     private Expr expression() {
-//        return commaExpr();
-        return assignment();
+        return commaExpr();
+//        return assignment();
+    }
+
+    // 将其视为二元运算符
+    private Expr commaExpr() {
+        Expr expr = assignment();
+
+        while (match(COMMA)) {
+            Token operator = previous();
+            Expr right = commaExpr();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
     }
 
     private Expr assignment() {
-        Expr expr = commaExpr();
+        Expr expr = ternary();
 
         if (match(EQUAL)) {
             Token equals = previous();
@@ -104,27 +203,39 @@ class Parser {
         return expr;
     }
 
-    // 将其视为二元运算符
-    private Expr commaExpr() {
-        Expr expr = ternary();
 
-        while (match(COMMA)) {
-            Token operator = previous();
-            Expr right = commaExpr();
-            expr = new Expr.Binary(expr, operator, right);
+    private Expr ternary() {
+        Expr expr = or();
+
+        while (match(QUESTION)) {
+            Expr left = or();
+            consume(COLON, "Expect ':' after '?'.");
+            Expr right = or();
+            expr = new Expr.Ternary(expr, left, right);
         }
 
         return expr;
     }
 
-    private Expr ternary() {
+    private Expr or() {
+        Expr expr = and();
+
+        while (match(OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr and() {
         Expr expr = equality();
 
-        while (match(QUESTION)) {
-            Expr left = equality();
-            consume(COLON, "Expect ':' after '?'.");
+        while (match(AND)) {
+            Token operator = previous();
             Expr right = equality();
-            expr = new Expr.Ternary(expr, left, right);
+            expr = new Expr.Logical(expr, operator, right);
         }
 
         return expr;
