@@ -56,7 +56,7 @@ public class Lox {
         if (hadError) return;
 //        System.out.println(new AstPrinter().print(statements));
 //        System.out.println(new AstRPN().print(statements));
-        System.out.println(new AstTree().print(statements));
+//        System.out.println(new AstTree().print(statements));
 
         interpreter.interpreter(statements);
     }

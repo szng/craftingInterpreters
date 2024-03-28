@@ -28,6 +28,11 @@ public class AstTree implements Expr.Visitor<String>,
     }
 
     @Override
+    public String visitCallExpr(Expr.Call expr) {
+        return null;
+    }
+
+    @Override
     public String visitGroupingExpr(Expr.Grouping expr) {
         return tree("group", expr.expression);
     }
@@ -130,6 +135,11 @@ public class AstTree implements Expr.Visitor<String>,
     }
 
     @Override
+    public String visitFunctionStmt(Stmt.Function stmt) {
+        return null;
+    }
+
+    @Override
     public String visitIfStmt(Stmt.If stmt) {
         StringBuilder builder = new StringBuilder();
         builder.append("if").append("\n");
@@ -155,6 +165,11 @@ public class AstTree implements Expr.Visitor<String>,
         isLast[--layer] = false;
 
         return builder.toString();
+    }
+
+    @Override
+    public String visitReturnStmt(Stmt.Return stmt) {
+        return null;
     }
 
     @Override
