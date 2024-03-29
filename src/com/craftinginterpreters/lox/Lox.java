@@ -58,6 +58,11 @@ public class Lox {
 //        System.out.println(new AstRPN().print(statements));
 //        System.out.println(new AstTree().print(statements));
 
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        if (hadError) return;
+
         interpreter.interpreter(statements);
     }
 
