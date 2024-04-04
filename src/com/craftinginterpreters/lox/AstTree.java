@@ -33,6 +33,11 @@ public class AstTree implements Expr.Visitor<String>,
     }
 
     @Override
+    public String visitGetExpr(Expr.Get expr) {
+        return null;
+    }
+
+    @Override
     public String visitGroupingExpr(Expr.Grouping expr) {
         return tree("group", expr.expression);
     }
@@ -52,6 +57,16 @@ public class AstTree implements Expr.Visitor<String>,
     @Override
     public String visitLogicalExpr(Expr.Logical expr) {
         return tree(expr.operator.lexeme, expr.left, expr.right);
+    }
+
+    @Override
+    public String visitSetExpr(Expr.Set expr) {
+        return null;
+    }
+
+    @Override
+    public String visitThisExpr(Expr.This expr) {
+        return null;
     }
 
     @Override
@@ -120,6 +135,11 @@ public class AstTree implements Expr.Visitor<String>,
         return "{\n" +
                 print(stmt.statements) +
                 "}\n";
+    }
+
+    @Override
+    public String visitClassStmt(Stmt.Class stmt) {
+        return null;
     }
 
     @Override
