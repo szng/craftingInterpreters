@@ -11,6 +11,7 @@ abstract class Stmt{
         R visitIfStmt(If stmt);
         R visitPrintStmt(Print stmt);
         R visitReturnStmt(Return stmt);
+        R visitTraitStmt(Trait stmt);
         R visitVarStmt(Var stmt);
         R visitWhileStmt(While stmt);
     }
@@ -26,9 +27,10 @@ abstract class Stmt{
         final List<Stmt> statements;
     }
     static class Class extends Stmt{
-        Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods, List<Stmt.Function> classMethods) {
+        Class(Token name, Expr.Variable superclass, List<Expr> traits, List<Stmt.Function> methods, List<Stmt.Function> classMethods) {
             this.name = name;
             this.superclass = superclass;
+            this.traits = traits;
             this.methods = methods;
             this.classMethods = classMethods;
         }
@@ -39,6 +41,7 @@ abstract class Stmt{
         }
         final Token name;
         final Expr.Variable superclass;
+        final List<Expr> traits;
         final List<Stmt.Function> methods;
         final List<Stmt.Function> classMethods;
     }
@@ -106,6 +109,21 @@ abstract class Stmt{
         }
         final Token keyword;
         final Expr value;
+    }
+    static class Trait extends Stmt{
+        Trait(Token name, List<Expr> traits, List<Stmt.Function> methods) {
+            this.name = name;
+            this.traits = traits;
+            this.methods = methods;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitTraitStmt(this);
+        }
+        final Token name;
+        final List<Expr> traits;
+        final List<Stmt.Function> methods;
     }
     static class Var extends Stmt{
         Var(Token name, Expr initializer) {

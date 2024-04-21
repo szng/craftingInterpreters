@@ -198,6 +198,11 @@ public class AstTree implements Expr.Visitor<String>,
     }
 
     @Override
+    public String visitTraitStmt(Stmt.Trait stmt) {
+        return null;
+    }
+
+    @Override
     public String visitVarStmt(Stmt.Var stmt) {
         return null;
     }

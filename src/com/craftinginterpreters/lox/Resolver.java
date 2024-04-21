@@ -25,7 +25,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private enum ClassType {
         NONE,
         CLASS,
-        SUBCLASS
+        SUBCLASS,
+        TRAIT
     }
 
     private enum ScopeType {
@@ -195,6 +196,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (currentClass == ClassType.NONE) {
             Lox.error(expr.keyword,
                     "Can't use 'super' outside of a class.");
+        } else if (currentClass == ClassType.TRAIT) {
+            Lox.error(expr.keyword,
+                    "Can't use 'super' in a trait.");
         } else if (currentClass != ClassType.SUBCLASS) {
             Lox.error(expr.keyword,
                     "Can't use 'super' in a clas with no superclass.");
@@ -267,6 +271,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                     new Token(TokenType.SUPER,
                             null, null, 0),
                     ScopeType.USED));
+        }
+
+        for (Expr trait : stmt.traits) {
+            resolve(trait);
         }
 
         beginScope();
@@ -353,6 +361,34 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             resolve(stmt.value);
         }
 
+        return null;
+    }
+
+    @Override
+    public Void visitTraitStmt(Stmt.Trait stmt) {
+        declare(stmt.name);
+        define(stmt.name);
+        ClassType enclosingClass = currentClass;
+        currentClass = ClassType.TRAIT;
+
+        for (Expr trait : stmt.traits) {
+            resolve(trait);
+        }
+
+        beginScope();
+        scopes.peek().put("this", new Pair(
+                new Token(TokenType.THIS,
+                        null, null, 0),
+                ScopeType.USED));
+
+        for (Stmt.Function method : stmt.methods) {
+            FunctionType declaration = FunctionType.METHOD;
+            resolveFunction(method, declaration);
+        }
+
+        endScope();
+
+        currentClass = enclosingClass;
         return null;
     }
 

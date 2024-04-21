@@ -29,6 +29,21 @@ class Interpreter implements Expr.Visitor<Object>,
                 return "<native fn>";
             }
         });
+
+        // 数组
+        globals.define("Array", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter,
+                               List<Object> arguments) {
+                int size = (int) (double) arguments.get(0);
+                return new LoxArray(size);
+            }
+        });
     }
 
     void interpreter(List<Stmt> statements) {
@@ -363,7 +378,8 @@ class Interpreter implements Expr.Visitor<Object>,
         LoxClass metaclass = new LoxClass(null,
                 stmt.name.lexeme + " metaclass", (LoxClass) superclass, classMethods);
 
-        Map<String, LoxFunction> methods = new HashMap<>();
+        Map<String, LoxFunction> methods = applyTraits(stmt.traits);
+//        Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
             LoxFunction function = new LoxFunction(method,
                     environment,
@@ -417,8 +433,8 @@ class Interpreter implements Expr.Visitor<Object>,
     public Void visitIfStmt(Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.thenBranch);
-        } else {
-            execute(stmt.thenBranch);
+        } else if (stmt.elseBranch != null) {
+            execute(stmt.elseBranch);
         }
 
         return null;
@@ -439,6 +455,56 @@ class Interpreter implements Expr.Visitor<Object>,
         }
 
         throw new Return(value);
+    }
+
+    @Override
+    public Void visitTraitStmt(Stmt.Trait stmt) {
+        environment.define(stmt.name.lexeme, null);
+
+        Map<String, LoxFunction> methods = applyTraits(stmt.traits);
+
+        for (Stmt.Function method : stmt.methods) {
+            if (methods.containsKey(method.name.lexeme)) {
+                throw new RuntimeError(method.name,
+                        "A previous trait declares a method named '" +
+                                method.name.lexeme + "'.");
+            }
+
+            LoxFunction function = new LoxFunction(
+                    method, environment, false);
+            methods.put(method.name.lexeme, function);
+        }
+
+        LoxTrait trait = new LoxTrait(stmt.name, methods);
+
+        environment.assign(stmt.name, trait);
+        return null;
+    }
+
+    private Map<String, LoxFunction> applyTraits(List<Expr> traits) {
+        Map<String, LoxFunction> methods = new HashMap<>();
+
+        for (Expr traitExpr : traits) {
+            Object traitObject = evaluate(traitExpr);
+            if (!(traitObject instanceof LoxTrait)) {
+                Token name = ((Expr.Variable)traitExpr).name;
+                throw new RuntimeError(name,
+                        "'" + name.lexeme + "' is not a trait.");
+            }
+
+            LoxTrait trait = (LoxTrait) traitObject;
+            for (String name : trait.methods.keySet()) {
+                if (methods.containsKey(name)) {
+                    throw new RuntimeError(trait.name,
+                            "A previous trait declares a method named '" +
+                                    name + "'.");
+                }
+
+                methods.put(name, trait.methods.get(name));
+            }
+        }
+
+        return methods;
     }
 
     @Override
